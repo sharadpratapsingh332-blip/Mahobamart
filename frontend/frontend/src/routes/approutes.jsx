@@ -8,7 +8,7 @@ import ShopDetails from "../pages/ShopDetails";
 import CategoryDetails from "../pages/CategoryDetails";
 import CreateShop from "../pages/createShop";
 import Products from "../pages/Products";
-import Checkout from "../pages/checkout";
+import Checkout from "../pages/Checkout"
 import Orders from "../pages/OrderPage";
 import ShopDashboard from "../pages/shopDashboard";
 import CreateProduct from "../pages/CreateProduct";
