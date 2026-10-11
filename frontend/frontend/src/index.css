@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #374151;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #16a34a;
+}
+
+/* Avoid horizontal overflow on phones */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
