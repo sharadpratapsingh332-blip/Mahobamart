@@ -24,7 +24,7 @@ const AdminUsers = () => {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(
+      const response = await api.get(
         "/api/admin/users",
         { withCredentials: true }
       );

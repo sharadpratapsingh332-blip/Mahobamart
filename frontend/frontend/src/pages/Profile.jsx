@@ -29,7 +29,7 @@ const Profile = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         "/auth/profile",
         { withCredentials: true }
       );

@@ -17,7 +17,7 @@ const ShopDetails = () => {
 
   const fetchShopProducts = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         `/shops/${id}/products`
       );
 

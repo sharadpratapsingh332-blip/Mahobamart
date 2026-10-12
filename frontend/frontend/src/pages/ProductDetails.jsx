@@ -34,7 +34,7 @@ const ProductDetails = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         "/users/profile",
         {
           withCredentials: true,
@@ -54,7 +54,7 @@ const ProductDetails = () => {
       setProduct(null);
       setQuantity(1);
 
-      const res = await axios.get(
+      const res = await api.get(
         `/products/${id}`
       );
 

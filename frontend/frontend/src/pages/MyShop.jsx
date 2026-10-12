@@ -34,7 +34,7 @@ const MyShop = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(
+      const res = await api.get(
         "/shops/my-shop",
         {
           withCredentials: true,

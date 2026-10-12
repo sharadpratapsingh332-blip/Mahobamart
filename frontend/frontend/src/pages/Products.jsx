@@ -40,7 +40,7 @@ const Products = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(
+      const res = await api.get(
         `/products/nearby?latitude=${latitude}&longitude=${longitude}`
       );
 

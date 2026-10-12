@@ -30,7 +30,7 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         "/admin/stats",
         { withCredentials: true }
       );

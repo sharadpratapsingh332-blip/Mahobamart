@@ -43,7 +43,7 @@ const AdminShops = () => {
   const [message, setMessage] = useState("");
 
   const fetchShops = async () => {
-    const response = await axios.get(`/admin/shops`, {
+    const response = await api.get(`/admin/shops`, {
       withCredentials: true,
     });
 
@@ -52,10 +52,10 @@ const AdminShops = () => {
 
   const fetchFormOptions = async () => {
     const [usersResponse, categoriesResponse] = await Promise.all([
-      axios.get(`/admin/users`, {
+      api.get(`/admin/users`, {
         withCredentials: true,
       }),
-      axios.get(`/categories`, {
+      api.get(`/categories`, {
         withCredentials: true,
       }),
     ]);

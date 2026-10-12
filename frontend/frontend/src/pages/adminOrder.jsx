@@ -39,7 +39,7 @@ const AdminOrders = () => {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(API_URL, {
+      const response = await api.get(API_URL, {
         withCredentials: true,
       });
 

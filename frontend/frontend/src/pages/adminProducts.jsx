@@ -40,7 +40,7 @@ const AdminProducts = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(`/products`, {
+      const res = await api.get(`/products`, {
         withCredentials: true,
       });
 

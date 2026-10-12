@@ -18,7 +18,7 @@ const CategoryDetails = () => {
       setLoading(true);
 
       try {
-        const res = await axios.get(
+        const res = await api.get(
           `/categories/${id}/products`
         );
 

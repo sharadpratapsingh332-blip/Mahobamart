@@ -27,7 +27,7 @@ const UpdateProduct = () => {
   const fetchProduct = async () => {
     try {
 
-      const res = await axios.get(
+      const res = await api.get(
         `/products/${id}`
       );
 

@@ -30,7 +30,7 @@ const Orders = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(
+      const res = await api.get(
         "/orders/my-orders",
         {
           withCredentials: true,

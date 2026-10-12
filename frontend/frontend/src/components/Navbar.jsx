@@ -33,7 +33,7 @@ const Navbar = () => {
     }
 
     try {
-      const res = await axios.get(
+      const res = await api.get(
         `/search?keyword=${encodeURIComponent(value)}`
       );
       setResults(res.data);

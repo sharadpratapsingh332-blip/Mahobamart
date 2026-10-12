@@ -39,7 +39,7 @@ const ShopDashboard = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(
+      const res = await api.get(
         "/shops/dashboard",
         { withCredentials: true }
       );

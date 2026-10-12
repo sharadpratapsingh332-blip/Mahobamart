@@ -25,7 +25,7 @@ const CreateProduct = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         "/categories"
       );
 

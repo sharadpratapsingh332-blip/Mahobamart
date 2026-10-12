@@ -14,7 +14,7 @@ const ShopOrders = () => {
   const fetchOrders = async () => {
     try {
 
-      const res = await axios.get(
+      const res = await api.get(
         "/orders/shop-orders",
         {
           withCredentials: true

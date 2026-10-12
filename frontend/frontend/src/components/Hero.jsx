@@ -22,7 +22,7 @@ const Hero = () => {
 
       // User entered a location
       if (location.trim()) {
-        const res = await axios.get(
+        const res = await api.get(
           "https://nominatim.openstreetmap.org/search",
           {
             params: {
