@@ -29,9 +29,8 @@ setLoading(false);
 }
 };
 
-```
 getCurrentUser();
-```
+
 
 }, []);
 
