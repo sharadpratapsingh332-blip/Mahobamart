@@ -35,11 +35,12 @@ const ProductDetails = () => {
   const fetchProfile = async () => {
     try {
       const res = await api.get(
-        "/users/profile",
+        "/auth/profile",
         {
           withCredentials: true,
         }
       );
+
 
       setUser(res.data.user);
     } catch (error) {
