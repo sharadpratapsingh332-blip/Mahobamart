@@ -1,7 +1,8 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axios";
+
 import { ArrowLeft, MapPin, Phone, ShoppingBag } from "lucide-react";
 import Navbar from "../components/Navbar";
 

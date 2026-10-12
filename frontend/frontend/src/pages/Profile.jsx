@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/authcontext";
-import axios from "axios";
+import api from "../api/axios";
+
 import {
   House,
   ShoppingBag,

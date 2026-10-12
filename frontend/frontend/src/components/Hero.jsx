@@ -3,7 +3,8 @@ import { MapPin } from "lucide-react";
 import mahobafort from "../assets/mahoba-fort.png";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
+
 
 const Hero = () => {
   const [location, setLocation] = useState("");

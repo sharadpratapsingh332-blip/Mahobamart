@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios";
+
 import Navbar from "../components/Navbar";
 
 const ShopOrders = () => {

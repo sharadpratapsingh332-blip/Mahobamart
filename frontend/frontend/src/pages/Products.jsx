@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
+
 import Navbar from "../components/Navbar";
 import {
   Store,

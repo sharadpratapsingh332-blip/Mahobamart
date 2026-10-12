@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
+
 import { Store, ArrowLeft, Package } from "lucide-react";
 import Navbar from "../components/Navbar";
 
