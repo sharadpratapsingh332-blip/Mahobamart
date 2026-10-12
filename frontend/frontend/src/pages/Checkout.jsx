@@ -44,7 +44,7 @@ const Checkout = () => {
     try {
       setPlacingOrder(true);
 
-      await axios.post(
+      await api.post(
         "/orders",
         {
           product: product._id,
