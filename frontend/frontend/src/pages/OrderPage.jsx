@@ -30,7 +30,7 @@ const Orders = () => {
       setError("");
 
       const res = await axios.get(
-        "http://localhost:3000/api/orders/my-orders",
+        "/orders/my-orders",
         {
           withCredentials: true,
         }

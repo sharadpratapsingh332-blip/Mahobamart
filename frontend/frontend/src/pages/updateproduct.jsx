@@ -27,7 +27,7 @@ const UpdateProduct = () => {
     try {
 
       const res = await axios.get(
-        `http://localhost:3000/api/products/${id}`
+        `/products/${id}`
       );
 
       const product = res.data.product;
@@ -63,7 +63,7 @@ const UpdateProduct = () => {
        }
 
       await axios.put(
-           `http://localhost:3000/api/products/${id}`,
+           `/products/${id}`,
             formData,
             {
               withCredentials: true,

@@ -14,7 +14,7 @@ import {
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
-const API_URL = "http://localhost:3000/api/orders";
+const API_URL = "/orders";
 
 const STATUSES = [
   "Placed",

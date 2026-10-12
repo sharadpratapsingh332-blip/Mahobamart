@@ -25,7 +25,7 @@ const CreateProduct = () => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:3000/api/categories"
+        "/categories"
       );
 
       setCategories(res.data.categories || []);
@@ -73,7 +73,7 @@ const CreateProduct = () => {
       formData.append("image", image);
 
       await axios.post(
-        "http://localhost:3000/api/products",
+        "/products",
         formData,
         {
           withCredentials: true,

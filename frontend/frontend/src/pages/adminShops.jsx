@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 
-const API = "http://localhost:3000/api";
 
 const initialForm = {
   name: "",
@@ -43,7 +42,7 @@ const AdminShops = () => {
   const [message, setMessage] = useState("");
 
   const fetchShops = async () => {
-    const response = await axios.get(`${API}/admin/shops`, {
+    const response = await axios.get(`/admin/shops`, {
       withCredentials: true,
     });
 
@@ -52,10 +51,10 @@ const AdminShops = () => {
 
   const fetchFormOptions = async () => {
     const [usersResponse, categoriesResponse] = await Promise.all([
-      axios.get(`${API}/admin/users`, {
+      axios.get(`/admin/users`, {
         withCredentials: true,
       }),
-      axios.get(`${API}/categories`, {
+      axios.get(`/categories`, {
         withCredentials: true,
       }),
     ]);

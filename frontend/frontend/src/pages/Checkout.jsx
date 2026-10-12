@@ -44,7 +44,7 @@ const Checkout = () => {
       setPlacingOrder(true);
 
       await axios.post(
-        "http://localhost:3000/api/orders",
+        "/orders",
         {
           product: product._id,
           quantity,

@@ -39,7 +39,7 @@ const ShopDashboard = () => {
       setError("");
 
       const res = await axios.get(
-        "http://localhost:3000/api/shops/dashboard",
+        "/shops/dashboard",
         { withCredentials: true }
       );
 

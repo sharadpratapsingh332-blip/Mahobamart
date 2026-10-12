@@ -122,7 +122,7 @@ const CreateShop = () => {
       formData.append("image", image);
 
       const res = await axios.post(
-        "http://localhost:3000/api/shops",
+        "/shops",
         formData,
         {
           withCredentials: true,

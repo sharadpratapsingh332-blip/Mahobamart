@@ -15,7 +15,6 @@ import {
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
 
-const API_URL = "http://localhost:3000/api";
 
 const emptyForm = {
   name: "",
@@ -40,7 +39,7 @@ const AdminProducts = () => {
       setLoading(true);
       setError("");
 
-      const res = await axios.get(`${API_URL}/products`, {
+      const res = await axios.get(`/products`, {
         withCredentials: true,
       });
 

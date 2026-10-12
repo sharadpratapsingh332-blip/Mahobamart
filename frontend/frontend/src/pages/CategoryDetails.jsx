@@ -18,7 +18,7 @@ const CategoryDetails = () => {
 
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/categories/${id}/products`
+          `/categories/${id}/products`
         );
 
         setCategory(res.data.category);

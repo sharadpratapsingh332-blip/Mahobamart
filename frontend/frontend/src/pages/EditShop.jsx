@@ -37,7 +37,7 @@ const EditShop = () => {
         setError("");
 
         const res = await axios.get(
-          "http://localhost:3000/api/shops/my-shop",
+          "/shops/my-shop",
           {
             withCredentials: true,
           }
@@ -101,7 +101,7 @@ const EditShop = () => {
       }
 
       await axios.put(
-        "http://localhost:3000/api/shops/update",
+        "/shops/update",
         formData,
         {
           withCredentials: true,

@@ -34,7 +34,7 @@ const MyShop = () => {
       setError("");
 
       const res = await axios.get(
-        "http://localhost:3000/api/shops/my-shop",
+        "/shops/my-shop",
         {
           withCredentials: true,
         }
@@ -62,7 +62,7 @@ const MyShop = () => {
 
     try {
       await axios.delete(
-        `http://localhost:3000/api/products/${id}`,
+        `/products/${id}`,
         {
           withCredentials: true,
         }

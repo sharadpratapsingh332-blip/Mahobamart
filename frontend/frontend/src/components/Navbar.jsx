@@ -34,7 +34,7 @@ const Navbar = () => {
 
     try {
       const res = await axios.get(
-        `http://localhost:3000/api/search?keyword=${encodeURIComponent(value)}`
+        `/search?keyword=${encodeURIComponent(value)}`
       );
       setResults(res.data);
     } catch (error) {

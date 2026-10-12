@@ -40,7 +40,7 @@ const Products = () => {
       setError("");
 
       const res = await axios.get(
-        `http://localhost:3000/api/products/nearby?latitude=${latitude}&longitude=${longitude}`
+        `/products/nearby?latitude=${latitude}&longitude=${longitude}`
       );
 
       setProducts(res.data.products || []);

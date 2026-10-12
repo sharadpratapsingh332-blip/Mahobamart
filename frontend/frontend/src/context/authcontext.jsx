@@ -1,8 +1,8 @@
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
+createContext,
+useContext,
+useEffect,
+useState,
 } from "react";
 
 import api from "../api/axios";
@@ -10,49 +10,38 @@ import api from "../api/axios";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    console.log("AuthProvider Running");
+const [user, setUser] = useState(null);
+const [loading, setLoading] = useState(true);
 
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
- 
- const getCurrentUser = async () => {
-  try {
-    console.log("Calling /auth/me");
-
-    const { data } = await api.get("/auth/me");
-
-    console.log(data);
-
-    setUser(data.user);
-
-  } catch (error) {
-    console.log(error.response?.data);
-
-    setUser(null);
-
-  } finally {
-    setLoading(false);
-  }
+useEffect(() => {
+const getCurrentUser = async () => {
+try {
+const { data } = await api.get("/auth/me");
+setUser(data.user);
+} catch (error) {
+setUser(null);
+console.error(
+"Failed to load profile:",
+error.response?.data || error.message
+);
+} finally {
+setLoading(false);
+}
 };
 
-  useEffect(() => {
-    getCurrentUser();
-  }, []);
+```
+getCurrentUser();
+```
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        setUser,
-        loading,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+}, []);
+
+return (
+<AuthContext.Provider
+value={{ user, setUser, loading }}
+>
+{children}
+</AuthContext.Provider>
+);
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

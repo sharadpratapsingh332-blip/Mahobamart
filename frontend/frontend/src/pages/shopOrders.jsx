@@ -14,7 +14,7 @@ const ShopOrders = () => {
     try {
 
       const res = await axios.get(
-        "http://localhost:3000/api/orders/shop-orders",
+        "/orders/shop-orders",
         {
           withCredentials: true
         }
@@ -34,7 +34,7 @@ const ShopOrders = () => {
     try {
 
       await axios.put(
-        `http://localhost:3000/api/orders/${orderId}`,
+        `/orders/${orderId}`,
         { status },
         {
           withCredentials: true
