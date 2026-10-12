@@ -34,14 +34,7 @@ const ProductDetails = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get(
-        "/auth/profile",
-        {
-          withCredentials: true,
-        }
-      );
-
-
+      const res = await api.get("/auth/profile");
       setUser(res.data.user);
     } catch (error) {
       console.log("Profile loading failed:", error);
@@ -55,10 +48,7 @@ const ProductDetails = () => {
       setProduct(null);
       setQuantity(1);
 
-      const res = await api.get(
-        `/products/${id}`
-      );
-
+      const res = await api.get(`/products/${id}`);
       setProduct(res.data.product);
     } catch (error) {
       console.log(error);
@@ -156,20 +146,22 @@ const ProductDetails = () => {
             Back
           </button>
 
-          {/* Product Layout */}
-          <div className="grid grid-cols-1 items-start gap-5 sm:gap-7 md:grid-cols-2 md:gap-8 lg:gap-10">
+          {/* Product Layout: Equal Height Columns */}
+          <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-7 md:grid-cols-2 md:gap-8 lg:gap-10">
 
             {/* Product Image */}
-            <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="h-full min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-64 w-full object-cover sm:h-80 md:h-[420px] lg:h-[500px]"
+                className="h-full min-h-[280px] w-full object-cover sm:min-h-[350px] md:min-h-[600px]"
               />
             </div>
 
             {/* Product Information */}
-            <section className="min-w-0 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:p-8">
+            <section className="flex h-full min-w-0 flex-col rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:p-8">
+
+              {/* Category and Stock */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 sm:text-sm">
                   <Tag size={14} />
@@ -187,19 +179,19 @@ const ProductDetails = () => {
                 </span>
               </div>
 
+              {/* Product Name */}
               <h1 className="mt-4 break-words text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
                 {product.name}
               </h1>
 
+              {/* Description */}
               <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
                 {product.description || "No description available."}
               </p>
 
               {/* Price */}
               <div className="mt-5 border-b border-gray-100 pb-5 sm:mt-6 sm:pb-6">
-                <p className="text-sm text-gray-500">
-                  Price
-                </p>
+                <p className="text-sm text-gray-500">Price</p>
 
                 <p className="mt-1 flex items-center text-3xl font-bold text-green-600 sm:text-4xl">
                   <IndianRupee size={27} />
@@ -207,7 +199,7 @@ const ProductDetails = () => {
                 </p>
               </div>
 
-              {/* Product Information */}
+              {/* Shop, Stock and Address */}
               <div className="mt-5 space-y-4 sm:mt-6">
                 <div className="flex items-start gap-3">
                   <Store
@@ -263,7 +255,7 @@ const ProductDetails = () => {
                   Select Quantity
                 </h3>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <button
                     type="button"
                     aria-label="Decrease quantity"
@@ -298,7 +290,7 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              {/* Total and Order Button */}
+              {/* Total Amount */}
               <div className="mt-6 rounded-xl bg-green-50 p-4 sm:mt-8 sm:p-5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-600 sm:text-base">
@@ -312,6 +304,7 @@ const ProductDetails = () => {
                 </div>
               </div>
 
+              {/* Order Button */}
               <button
                 onClick={handleOrderNow}
                 disabled={outOfStock}
@@ -324,6 +317,7 @@ const ProductDetails = () => {
               <p className="mt-3 text-center text-xs text-gray-500 sm:text-sm">
                 Local Delivery, Local Support
               </p>
+
             </section>
           </div>
         </div>
@@ -333,4 +327,3 @@ const ProductDetails = () => {
 };
 
 export default ProductDetails;
-
