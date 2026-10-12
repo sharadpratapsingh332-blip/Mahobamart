@@ -26,12 +26,24 @@ app.get("/", (req, res) => {
   res.status(200).send("MahobaMart API is running!");
 });
 
+
+const allowedOrigins = [
+  "https://mahobamart.vercel.app",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: [
-      "https://mahobamart.vercel.app",
-      "http://localhost:5173"
-    ],
+    origin: (origin, callback) => {
+      const isVercelDeployment =
+        origin && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+
+      if (!origin || allowedOrigins.includes(origin) || isVercelDeployment) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
