@@ -19,8 +19,12 @@ const adminRoutes = require("./routes/admin.routes");
 const searchRoutes = require("./routes/search.routes");
 
 
+
 const app= express()
 
+app.get("/", (req, res) => {
+  res.status(200).send("MahobaMart API is running!");
+});
 
 app.use(
   cors({
