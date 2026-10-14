@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext";
 import api from "../api/axios";
 
@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 
 const Profile = () => {
+  const navigate = useNavigate();
+   const { setUser: setAuthUser } = useAuth();
   const [user, setUser] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -58,14 +60,20 @@ const Profile = () => {
   
 const handleLogout = async () => {
   try {
-    await api.post("/auth/logout");
-
-    // Update your authentication context
-    setUser(null);
-
-    navigate("/login");
+    await api.post("/auth/logout", {}, {
+      withCredentials: true,
+    });
   } catch (error) {
-    console.error("Logout failed:", error);
+    console.error("Logout API error:", error);
+  } finally {
+    // Clear the global authentication state
+    setAuthUser(null);
+
+    // Clear the local profile state
+    setUser({});
+
+    // Redirect to login
+    navigate("/login", { replace: true });
   }
 };
 
