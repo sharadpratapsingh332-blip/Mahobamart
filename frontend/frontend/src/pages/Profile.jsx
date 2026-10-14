@@ -55,9 +55,20 @@ const Profile = () => {
 
   const closeSidebar = () => setSidebarOpen(false);
 
-  const handleLogout = () => {
-    window.location.href = "/login";
-  };
+  
+const handleLogout = async () => {
+  try {
+    await api.post("/auth/logout");
+
+    // Update your authentication context
+    setUser(null);
+
+    navigate("/login");
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+};
+
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f7f9fc] text-slate-800">

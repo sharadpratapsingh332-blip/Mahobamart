@@ -8,7 +8,8 @@ const {
   loginUser,
   getProfile,
   getme,
-  getCurrentUser
+  getCurrentUser,
+  logoutUser
 } = require("../controller/user.controller");
 
 const auth =
@@ -25,6 +26,10 @@ router.get(
   auth,
   getme
 );
+
+
+router.post("/logout", logoutUser);
+
 
 router.get(
   "/current",
