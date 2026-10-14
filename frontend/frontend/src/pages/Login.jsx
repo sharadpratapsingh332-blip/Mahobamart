@@ -62,21 +62,6 @@ const Login = () => {
   return (
      <>
      <Navbar/>
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-green-100 px-3 py-6 sm:px-6 sm:py-10">
-      <div className="w-full max-w-md">
-        {/* MahobaMart Logo */}
-        <Link
-          to="/"
-          className="mb-5 flex items-center justify-center gap-2 sm:mb-7"
-        >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-2xl font-black text-white shadow-sm">
-            M
-          </div>
-
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-            <span className="text-emerald-600">Mahoba</span>Mart
-          </h1>
-        </Link>
 
         {/* Login Card */}
         <form
