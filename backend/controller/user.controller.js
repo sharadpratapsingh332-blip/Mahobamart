@@ -194,7 +194,7 @@ const getCurrentUser = async (req, res) => {
 
 
 
-export const logoutUser = async (req, res) => {
+ const logoutUser = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
