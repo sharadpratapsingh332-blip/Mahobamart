@@ -62,6 +62,8 @@ const Login = () => {
   return (
      <>
      <Navbar/>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-green-100 px-3 py-6 sm:px-6 sm:py-10">
+      <div className="w-full max-w-md">
 
         {/* Login Card */}
         <form
