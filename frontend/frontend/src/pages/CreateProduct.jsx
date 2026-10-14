@@ -73,7 +73,7 @@ const CreateProduct = () => {
       formData.append("category", category);
       formData.append("image", image);
 
-      await axios.post(
+      await api.post(
         "/products",
         formData,
         {
