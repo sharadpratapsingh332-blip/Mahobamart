@@ -61,21 +61,13 @@ const Navbar = () => {
             className="flex shrink-0 items-center gap-2"
           >
            
+           
 
-  <div className="flex flex-col">
-   
-     <img
-          src="/mahobamart-logo.png"
-          alt="MahobaMart Logo"
-          className="h-10 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] lg:h-[55px] lg:max-w-[340px]"
-     />
-
-    <p className="text-[10px] leading-tight ml-6 mb-2 text-gray-500 sm:text-xs">
-      Local Delivery, Local Support
-    </p>
-  </div>
-
-
+<img
+  src="/mahobamart-logo.png"
+  alt="MahobaMart Logo"
+  className="h-10 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] lg:h-[55px] lg:max-w-[340px]"
+/>
 
 
             
