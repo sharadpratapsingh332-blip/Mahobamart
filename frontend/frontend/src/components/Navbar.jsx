@@ -65,7 +65,7 @@ const Navbar = () => {
 <img
   src="/mahobamart-logo.png"
   alt="MahobaMart Logo"
-  className="h-12 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] lg:h-[60px] lg:max-w-[340px]"
+  className="h-10 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] lg:h-[55px] lg:max-w-[340px]"
 />
 
 
