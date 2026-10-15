@@ -60,18 +60,14 @@ const Navbar = () => {
             onClick={closeMenu}
             className="flex shrink-0 items-center gap-2"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white sm:h-12 sm:w-12 sm:text-2xl">
-              M
-            </div>
+           
+<img
+  src="/mahobamart-logo.png"
+  alt="MahobaMart Logo"
+  className="h-10 w-auto max-w-[190px] object-contain sm:h-12 sm:max-w-[240px]"
+/>
 
-            <div>
-              <h1 className="text-lg font-extrabold leading-tight text-green-700 sm:text-2xl">
-                MahobaMart
-              </h1>
-              <p className="hidden text-xs text-gray-500 sm:block">
-                Local Delivery, Local Support
-              </p>
-            </div>
+            
           </Link>
 
           {/* Desktop Search */}
