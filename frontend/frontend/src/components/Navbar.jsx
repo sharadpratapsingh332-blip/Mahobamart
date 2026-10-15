@@ -61,11 +61,13 @@ const Navbar = () => {
             className="flex shrink-0 items-center gap-2"
           >
            
+
 <img
   src="/mahobamart-logo.png"
   alt="MahobaMart Logo"
-  className="h-26 w-auto max-w-[190px] object-contain sm:h-12 sm:max-w-[240px]"
+  className="h-14 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[300px] lg:h-[72px] lg:max-w-[340px]"
 />
+
 
             
           </Link>
