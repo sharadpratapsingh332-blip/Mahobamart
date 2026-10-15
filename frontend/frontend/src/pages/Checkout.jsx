@@ -16,8 +16,9 @@ import Navbar from "../components/Navbar";
 
 
 const Checkout = () => {
-  const [gettingLocation, setGettingLocation] = useState(false);
-  const location = useLocation();
+ const [locating, setLocating] = useState(false);
+ const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const location = useLocation(); 
   const navigate = useNavigate();
 
   const { product, quantity } = location.state || {};
@@ -36,57 +37,92 @@ const Checkout = () => {
   };
 
   
-const handleGetCurrentLocation = () => {
+
+const handleUseCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser.");
+    alert("Location is not supported by your browser.");
     return;
   }
 
-  setGettingLocation(true);
+  setLocating(true);
+  setLocationAccuracy(null);
 
   navigator.geolocation.getCurrentPosition(
     async (position) => {
-      const { latitude, longitude } = position.coords;
+      const { latitude, longitude, accuracy } = position.coords;
+
+      console.log("Latitude:", latitude);
+      console.log("Longitude:", longitude);
+      console.log("Accuracy in meters:", accuracy);
+
+      setLocationAccuracy(Math.round(accuracy));
 
       try {
+        const params = new URLSearchParams({
+          format: "jsonv2",
+          lat: String(latitude),
+          lon: String(longitude),
+          zoom: "18",
+          addressdetails: "1",
+          "accept-language": "en",
+        });
+
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=en`
+          `https://nominatim.openstreetmap.org/reverse?${params}`
         );
 
         if (!response.ok) {
-          throw new Error("Unable to find your address.");
+          throw new Error("Address lookup failed. Please try again.");
         }
 
         const data = await response.json();
 
-        if (data.display_name) {
-          setAddress(data.display_name);
-        } else {
-          alert("Address not found. Please enter it manually.");
+        if (!data.address || !data.display_name) {
+          throw new Error("No address found. Please enter it manually.");
         }
+
+        // Build a readable address from the returned map data.
+        const a = data.address;
+
+        const parts = [
+          a.house_number,
+          a.building,
+          a.road,
+          a.neighbourhood || a.suburb,
+          a.city || a.town || a.village,
+          a.state_district,
+          a.state,
+          a.postcode,
+        ].filter(Boolean);
+
+        setAddress([...new Set(parts)].join(", "));
       } catch (error) {
-        console.error("Location error:", error);
         alert(
-          "Unable to fetch your address. Please enter it manually."
+          error.message ||
+            "Unable to find your address. Please enter it manually."
         );
       } finally {
-        setGettingLocation(false);
+        setLocating(false);
       }
     },
     (error) => {
-      setGettingLocation(false);
+      setLocating(false);
 
-      if (error.code === error.PERMISSION_DENIED) {
-        alert("Location permission denied. Please allow location access.");
-      } else if (error.code === error.TIMEOUT) {
-        alert("Location request timed out. Please try again.");
+      if (error.code === 1) {
+        alert("Please allow location permission in your browser settings.");
+      } else if (error.code === 2) {
+        alert(
+          "Your device could not determine your location. Turn on GPS and try again."
+        );
+      } else if (error.code === 3) {
+        alert("Location timed out. Please try again outdoors or near a window.");
       } else {
-        alert("Unable to get your location. Please try again.");
+        alert("Unable to get your location. Please enter your address manually.");
       }
     },
     {
       enableHighAccuracy: true,
-      timeout: 15000,
+      timeout: 30000,
       maximumAge: 0,
     }
   );
@@ -261,8 +297,9 @@ const handleGetCurrentLocation = () => {
               {/* Delivery Address */}
               
 {/* Delivery Address */}
+
 <div>
-  <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+  <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <label
       htmlFor="address"
       className="flex items-center gap-2 text-sm font-semibold text-gray-700"
@@ -273,19 +310,17 @@ const handleGetCurrentLocation = () => {
 
     <button
       type="button"
-      onClick={handleGetCurrentLocation}
-      disabled={gettingLocation}
-      className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-600 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
+      onClick={handleUseCurrentLocation}
+      disabled={locating}
+      className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-100 disabled:cursor-wait disabled:opacity-60"
     >
-      {gettingLocation ? (
-        <LoaderCircle size={17} className="animate-spin" />
+      {locating ? (
+        <LoaderCircle size={18} className="animate-spin" />
       ) : (
-        <LocateFixed size={17} />
+        <LocateFixed size={18} />
       )}
 
-      {gettingLocation
-        ? "Detecting location..."
-        : "Use Current Location"}
+      {locating ? "Finding location..." : "Use Current Location"}
     </button>
   </div>
 
@@ -294,22 +329,31 @@ const handleGetCurrentLocation = () => {
     autoComplete="street-address"
     value={address}
     onChange={(e) => setAddress(e.target.value)}
-    className="w-full min-w-0 rounded-xl border border-gray-300 p-3 text-base outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100 sm:p-3.5"
+    className="w-full min-w-0 border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none p-3 sm:p-3.5 rounded-xl text-base resize-y"
     rows={3}
-    placeholder="Enter your address or use your current location..."
-    required
+    placeholder="House number, street, area, Mahoba..."
   />
 
-  <p className="mt-2 text-xs text-gray-500">
-    <MapPin size={13} className="mr-1 inline" />
-    Allow location access to automatically find your address.
-    You can edit it before placing your order.
-  </p>
+  {locationAccuracy !== null && (
+    <p className="mt-2 text-sm text-gray-600">
+      Device location accuracy: approximately {locationAccuracy} metres.
+      Please verify your address before ordering.
+    </p>
+  )}
 
-  <p className="mt-1 text-xs text-gray-400">
-    Address lookup by OpenStreetMap contributors.
+  <p className="mt-2 text-xs text-gray-500">
+    Address lookup ©{" "}
+    <a
+      href="https://www.openstreetmap.org/copyright"
+      target="_blank"
+      rel="noreferrer"
+      className="underline"
+    >
+      OpenStreetMap contributors
+    </a>
   </p>
 </div>
+
 
             </div>
 
