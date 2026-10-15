@@ -70,7 +70,7 @@ const Navbar = () => {
           className="h-10 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] lg:h-[55px] lg:max-w-[340px]"
      />
 
-    <p className="text-[10px] leading-tight text-gray-500 sm:text-xs">
+    <p className="text-[10px] leading-tight ml-6 mb-2 text-gray-500 sm:text-xs">
       Local Delivery, Local Support
     </p>
   </div>
