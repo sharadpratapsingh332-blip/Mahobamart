@@ -47,6 +47,17 @@ const ShopDetails = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-10">
 
+        
+{/* Back to Home Button */}
+           <Link
+              to="/"
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-green-200 bg-white px-3 py-2.5 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 sm:mb-7 sm:px-4"
+            >
+              <ArrowLeft size={17} />
+              Back to Home
+            </Link>
+
+
         {/* Shop Details Section */}
         <div className="grid md:grid-cols-2 gap-10 mb-12">
 
