@@ -25,7 +25,7 @@ const AdminUsers = () => {
       setError("");
 
       const response = await api.get(
-        "/api/admin/users",
+        "/admin/users",
         { withCredentials: true }
       );
 
