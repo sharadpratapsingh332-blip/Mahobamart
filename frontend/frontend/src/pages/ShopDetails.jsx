@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import api from "../api/axios";
 
 import Navbar from "../components/Navbar";
-import { MapPin, Phone, Store } from "lucide-react";
+import { MapPin, Phone, Store ,ArrowLeft  } from "lucide-react";
 
 const ShopDetails = () => {
   const { id } = useParams();
