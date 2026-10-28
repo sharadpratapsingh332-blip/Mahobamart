@@ -1,51 +1,72 @@
+
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-
+import socket from "../socket";
 import Navbar from "../components/Navbar";
 
 const ShopOrders = () => {
-
   const [orders, setOrders] = useState([]);
+  const [newOrder, setNewOrder] = useState(null);
 
   useEffect(() => {
     fetchOrders();
+
+    const handleNewOrder = (orderData) => {
+      setNewOrder(orderData);
+      fetchOrders();
+    };
+
+    socket.on("new-order", handleNewOrder);
+    socket.connect();
+
+    return () => {
+      socket.off("new-order", handleNewOrder);
+      socket.disconnect();
+    };
   }, []);
 
   const fetchOrders = async () => {
     try {
+      const res = await api.get("/orders/shop-orders", {
+        withCredentials: true,
+      });
 
-      const res = await api.get(
-        "/orders/shop-orders",
-        {
-          withCredentials: true
-        }
-      );
-
-      setOrders(res.data.orders);
-
+      setOrders(res.data.orders || []);
     } catch (error) {
-      console.log(error);
+      console.error("Fetch orders error:", error);
     }
   };
 
-  const updateStatus = async (
-    orderId,
-    status
-  ) => {
+  const updateStatus = async (orderId, status) => {
     try {
-
-      await axios.put(
+      await api.put(
         `/orders/${orderId}`,
         { status },
-        {
-          withCredentials: true
-        }
+        { withCredentials: true }
       );
 
-      fetchOrders();
-
+      await fetchOrders();
+      return true;
     } catch (error) {
-      console.log(error);
+      console.error("Update order status error:", error);
+      alert(
+        error.response?.data?.message ||
+          "Could not update order status."
+      );
+      return false;
+    }
+  };
+
+  const handleNotificationAction = async (status) => {
+    if (!newOrder?.orderId) return;
+
+    const success = await updateStatus(
+      newOrder.orderId,
+      status
+    );
+
+    if (success) {
+      setNewOrder(null);
     }
   };
 
@@ -53,47 +74,87 @@ const ShopOrders = () => {
     <>
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      {/* New Order Popup */}
+      {newOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 text-4xl text-center">
+              🔔
+            </div>
 
-        <h1 className="text-4xl font-bold mb-8">
+            <h2 className="text-2xl font-bold text-center">
+              New Order Received!
+            </h2>
+
+            <div className="mt-5 space-y-3 rounded-xl bg-gray-50 p-4">
+              <p>
+                <strong>Product:</strong>{" "}
+                {newOrder.productName}
+              </p>
+
+              <p>
+                <strong>Quantity:</strong>{" "}
+                {newOrder.quantity}
+              </p>
+
+              <p>
+                <strong>Total:</strong>{" "}
+                ₹{newOrder.totalAmount}
+              </p>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() =>
+                  handleNotificationAction("Accepted")
+                }
+                className="flex-1 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700"
+              >
+                Accept Order
+              </button>
+
+              <button
+                onClick={() =>
+                  handleNotificationAction("Cancelled")
+                }
+                className="flex-1 rounded-lg bg-red-600 px-4 py-3 font-semibold text-white hover:bg-red-700"
+              >
+                Reject Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <h1 className="mb-8 text-4xl font-bold">
           Shop Orders
         </h1>
 
         {orders.length === 0 ? (
-
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="rounded-xl bg-white p-6 shadow">
             No Orders Found
           </div>
-
         ) : (
-
           <div className="grid gap-6">
-
             {orders.map((order) => (
-
               <div
                 key={order._id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden"
+                className="overflow-hidden rounded-xl bg-white shadow-lg"
               >
-
                 <div className="md:flex">
-
-                  {/* Product Image */}
                   <img
                     src={order.product?.image}
-                    alt={order.product?.name}
-                    className="w-full md:w-64 h-64 object-cover"
+                    alt={order.product?.name || "Product"}
+                    className="h-64 w-full object-cover md:w-64"
                   />
 
-                  {/* Order Details */}
-                  <div className="p-6 flex-1">
-
+                  <div className="flex-1 p-6">
                     <h2 className="text-2xl font-bold">
                       {order.product?.name}
                     </h2>
 
                     <div className="mt-4 space-y-2">
-
                       <p>
                         <strong>Customer:</strong>{" "}
                         {order.customer?.name}
@@ -121,39 +182,41 @@ const ShopOrders = () => {
 
                       <p>
                         <strong>Status:</strong>{" "}
-                        <span className="text-green-600 font-bold">
+                        <span className="font-bold text-green-600">
                           {order.status}
                         </span>
                       </p>
-
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 mt-6 flex-wrap">
-
+                    <div className="mt-6 flex flex-wrap gap-3">
                       {order.status === "Placed" && (
-                        <button
-                          onClick={() =>
-                            updateStatus(
-                              order._id,
-                              "Accepted"
-                            )
-                          }
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                        >
-                          Accept Order
-                        </button>
+                        <>
+                          <button
+                            onClick={() =>
+                              updateStatus(order._id, "Accepted")
+                            }
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                          >
+                            Accept Order
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              updateStatus(order._id, "Cancelled")
+                            }
+                            className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                          >
+                            Cancel Order
+                          </button>
+                        </>
                       )}
 
                       {order.status === "Accepted" && (
                         <button
                           onClick={() =>
-                            updateStatus(
-                              order._id,
-                              "Preparing"
-                            )
+                            updateStatus(order._id, "Preparing")
                           }
-                          className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg"
+                          className="rounded-lg bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
                         >
                           Mark Preparing
                         </button>
@@ -162,46 +225,20 @@ const ShopOrders = () => {
                       {order.status === "Preparing" && (
                         <button
                           onClick={() =>
-                            updateStatus(
-                              order._id,
-                              "Delivered"
-                            )
+                            updateStatus(order._id, "Delivered")
                           }
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+                          className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
                         >
                           Mark Delivered
                         </button>
                       )}
-
-                      {(order.status === "Placed" ||
-                        order.status === "Accepted") && (
-                        <button
-                          onClick={() =>
-                            updateStatus(
-                              order._id,
-                              "Cancelled"
-                            )
-                          }
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-                        >
-                          Cancel Order
-                        </button>
-                      )}
-
                     </div>
-
                   </div>
-
                 </div>
-
               </div>
-
             ))}
-
           </div>
-
         )}
-
       </div>
     </>
   );

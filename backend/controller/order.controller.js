@@ -37,6 +37,16 @@ const createOrder = async (req, res) => {
         phone
       });
 
+    const io = req.app.get("io");
+
+io.to(`shop:${productData.shop.toString()}`).emit("new-order", {
+  message: "You have received a new order!",
+  orderId: order._id,
+  productName: productData.name,
+  quantity: order.quantity,
+  totalAmount: order.totalAmount,
+});
+
     res.status(201).json({
       success: true,
       order
