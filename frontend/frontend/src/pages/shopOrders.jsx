@@ -127,6 +127,15 @@ const ShopOrders = () => {
       )}
 
       <div className="mx-auto max-w-7xl px-6 py-10">
+          
+          <Link
+            to="/shop-dashboard"
+            className="mb-6 inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700 active:scale-[0.98] sm:mb-8 sm:text-base"
+          >
+            <ArrowLeft size={18} />
+            Back to Home
+          </Link>
+
         <h1 className="mb-8 text-4xl font-bold">
           Shop Orders
         </h1>
