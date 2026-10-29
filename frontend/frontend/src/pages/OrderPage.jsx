@@ -160,7 +160,7 @@ const Orders = () => {
           ) : (
             /* Orders List */
             <div className="space-y-4 sm:space-y-6">
-              {orders.map((order) => (
+              {[...orders].reverse().map((order) => (
                 <article
                   key={order._id}
                   className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:shadow-md"
