@@ -99,7 +99,7 @@ const Orders = () => {
       accepted: "Accepted",
       preparing: "Preparing",
       "Out For Delivery" : "Out For Delivery",
-      OutForDelivery: "Out For Delivery",
+      "out for delivery": "Out For Delivery",
       dispatched: "Out For Delivery",
       shipped: "Out For Delivery",
       delivered: "Delivered",
@@ -124,7 +124,7 @@ const Orders = () => {
       Placed: "bg-yellow-100 text-yellow-800",
       Accepted: "bg-blue-100 text-blue-800",
       Preparing: "bg-purple-100 text-purple-800",
-      "Out for Delivery": "bg-sky-100 text-sky-800",
+      "Out For Delivery": "bg-sky-100 text-sky-800",
       Delivered: "bg-green-100 text-green-800",
       Cancelled: "bg-red-100 text-red-800",
     };
