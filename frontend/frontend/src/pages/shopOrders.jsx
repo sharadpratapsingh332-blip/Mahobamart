@@ -137,7 +137,7 @@ const ShopOrders = () => {
           </div>
         ) : (
           <div className="grid gap-6">
-            {orders.map((order) => (
+            {[...orders].reverse().map((order) => (
               <div
                 key={order._id}
                 className="overflow-hidden rounded-xl bg-white shadow-lg"
