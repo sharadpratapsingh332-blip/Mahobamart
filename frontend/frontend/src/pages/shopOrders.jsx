@@ -225,6 +225,17 @@ const ShopOrders = () => {
                       {order.status === "Preparing" && (
                         <button
                           onClick={() =>
+                            updateStatus(order._id, "Out For Delivery")
+                          }
+                          className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                        >
+                         Out For Delivery
+                        </button>
+                      )}
+
+                      {order.status === "Out For Delivery" && (
+                        <button
+                          onClick={() =>
                             updateStatus(order._id, "Delivered")
                           }
                           className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
