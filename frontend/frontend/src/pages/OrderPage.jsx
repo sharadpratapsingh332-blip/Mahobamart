@@ -98,7 +98,7 @@ const Orders = () => {
       pending: "Placed",
       accepted: "Accepted",
       preparing: "Preparing",
-      "out for delivery": "Out for Delivery",
+      "Out For Delivery" : "Out For Delivery",
       outfordelivery: "Out for Delivery",
       dispatched: "Out for Delivery",
       shipped: "Out for Delivery",
