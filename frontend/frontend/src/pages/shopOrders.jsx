@@ -4,7 +4,7 @@ import api from "../api/axios";
 import socket from "../socket";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
-import {ArrowLeft} from "lucide-react"
+import { ArrowLeft  } from "lucide-react";
 
 const ShopOrders = () => {
   const [orders, setOrders] = useState([]);
