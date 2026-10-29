@@ -112,6 +112,7 @@ const updateOrderStatus = async (req, res) => {
       "Placed",
       "Accepted",
       "Preparing",
+      "Out For Delivery",
       "Delivered",
       "Cancelled",
     ];
