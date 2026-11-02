@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
@@ -52,14 +53,18 @@ const orderSchema = new mongoose.Schema(
         "Cancelled"
       ],
       default: "Placed"
+    },
+
+    // Record when the customer cancels the order
+    cancelledAt: {
+      type: Date,
+      default: null
     }
+
   },
   {
     timestamps: true
   }
 );
 
-module.exports = mongoose.model(
-  "Order",
-  orderSchema
-);
+module.exports = mongoose.model("Order", orderSchema);

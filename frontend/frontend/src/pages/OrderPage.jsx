@@ -4,6 +4,7 @@ import api from "../api/axios";
 
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
+
 import {
   Package,
   MapPin,
@@ -30,8 +31,22 @@ const Orders = () => {
   const [error, setError] = useState("");
   const [expandedOrder, setExpandedOrder] = useState(null);
 
+  // Cancellation states
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  // Update current time internally.
+  // No countdown is displayed to the customer.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const fetchOrders = async () => {
@@ -46,12 +61,60 @@ const Orders = () => {
       setOrders(res.data.orders || []);
     } catch (error) {
       console.log(error);
+
       setError(
         error.response?.data?.message ||
           "Unable to load your orders. Please try again."
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Cancel order function
+  const handleCancelOrder = async (orderId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this order?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setCancellingOrder(orderId);
+
+      const res = await api.put(
+        `/orders/${orderId}/cancel`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+
+      // Update only the status.
+      // This preserves populated product and shop details.
+      setOrders((previousOrders) =>
+        previousOrders.map((order) =>
+          order._id === orderId
+            ? {
+                ...order,
+                status: "Cancelled",
+                cancelledAt: res.data.order?.cancelledAt || new Date(),
+              }
+            : order
+        )
+      );
+
+      alert("Your order has been cancelled successfully.");
+
+    } catch (error) {
+      console.log("CANCEL ORDER ERROR:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Unable to cancel order. Please try again."
+      );
+    } finally {
+      setCancellingOrder(null);
     }
   };
 
@@ -98,7 +161,6 @@ const Orders = () => {
       pending: "Placed",
       accepted: "Accepted",
       preparing: "Preparing",
-      "Out For Delivery" : "Out For Delivery",
       "out for delivery": "Out For Delivery",
       dispatched: "Out For Delivery",
       shipped: "Out For Delivery",
@@ -112,6 +174,7 @@ const Orders = () => {
 
   const getStepIndex = (status) => {
     const normalized = normalizeStatus(status);
+
     return trackingSteps.findIndex(
       (step) => step.status === normalized
     );
@@ -148,6 +211,24 @@ const Orders = () => {
     });
   };
 
+  // Check whether an order can still be cancelled
+  const canCancelOrder = (order) => {
+    if (!order.createdAt) return false;
+
+    const orderTime = new Date(order.createdAt).getTime();
+
+    if (Number.isNaN(orderTime)) return false;
+
+    const tenMinutes = 10 * 60 * 1000;
+
+    const deadline = orderTime + tenMinutes;
+
+    return (
+      normalizeStatus(order.status) === "Placed" &&
+      currentTime < deadline
+    );
+  };
+
   if (loading) {
     return (
       <>
@@ -158,6 +239,7 @@ const Orders = () => {
             size={40}
             className="animate-spin text-green-600"
           />
+
           <p className="mt-4 text-gray-600">
             Loading your orders...
           </p>
@@ -193,6 +275,7 @@ const Orders = () => {
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl lg:text-4xl">
                   My Orders
                 </h1>
+
                 <p className="mt-1 text-sm text-gray-500 sm:text-base">
                   Track and manage your orders.
                 </p>
@@ -212,7 +295,9 @@ const Orders = () => {
           {/* Error */}
           {error ? (
             <div className="rounded-2xl bg-white p-6 text-center shadow-sm sm:p-10">
-              <p className="break-words text-red-600">{error}</p>
+              <p className="break-words text-red-600">
+                {error}
+              </p>
 
               <button
                 onClick={fetchOrders}
@@ -222,6 +307,7 @@ const Orders = () => {
               </button>
             </div>
           ) : orders.length === 0 ? (
+
             /* Empty Orders */
             <div className="rounded-2xl bg-white px-4 py-10 text-center shadow-sm sm:px-8 sm:py-14">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600 sm:h-20 sm:w-20">
@@ -244,7 +330,9 @@ const Orders = () => {
                 Start Shopping
               </Link>
             </div>
+
           ) : (
+
             /* Orders List */
             <div className="space-y-4 sm:space-y-6">
               {[...orders]
@@ -255,10 +343,17 @@ const Orders = () => {
                 )
                 .map((order) => {
                   const status = normalizeStatus(order.status);
+
                   const currentStep = getStepIndex(order.status);
+
                   const isCancelled = status === "Cancelled";
+
                   const isDelivered = status === "Delivered";
+
                   const isExpanded = expandedOrder === order._id;
+
+                  // Check cancellation eligibility
+                  const canCancel = canCancelOrder(order);
 
                   return (
                     <article
@@ -292,6 +387,7 @@ const Orders = () => {
                                     size={18}
                                     className="mt-0.5 shrink-0 text-green-600"
                                   />
+
                                   <span className="break-words">
                                     Shop: {order.shop?.name || "Shop unavailable"}
                                   </span>
@@ -317,6 +413,7 @@ const Orders = () => {
                                 <p className="text-xs text-gray-500 sm:text-sm">
                                   Quantity
                                 </p>
+
                                 <p className="mt-1 font-semibold text-gray-800">
                                   {order.quantity}
                                 </p>
@@ -326,6 +423,7 @@ const Orders = () => {
                                 <p className="text-xs text-gray-500 sm:text-sm">
                                   Total Amount
                                 </p>
+
                                 <p className="mt-1 flex items-center text-lg font-bold text-green-700 sm:text-xl">
                                   <IndianRupee size={17} />
                                   {order.totalAmount}
@@ -340,6 +438,7 @@ const Orders = () => {
                                   size={17}
                                   className="mt-0.5 shrink-0 text-gray-400"
                                 />
+
                                 <span className="break-words">
                                   <strong className="text-gray-800">
                                     Phone:
@@ -353,6 +452,7 @@ const Orders = () => {
                                   size={18}
                                   className="mt-1 shrink-0 text-gray-400"
                                 />
+
                                 <span className="min-w-0 break-words">
                                   <strong className="text-gray-800">
                                     Delivery Address:
@@ -382,8 +482,25 @@ const Orders = () => {
                               aria-expanded={isExpanded}
                             >
                               <Navigation size={18} />
+
                               {isExpanded ? "Hide Tracking" : "Track Order"}
                             </button>
+
+                            {/* Cancel Order Button */}
+                            {canCancel && (
+                              <button
+                                type="button"
+                                onClick={() => handleCancelOrder(order._id)}
+                                disabled={cancellingOrder === order._id}
+                                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:ml-2 sm:w-auto"
+                              >
+                                <XCircle size={18} />
+
+                                {cancellingOrder === order._id
+                                  ? "Cancelling..."
+                                  : "Cancel Order"}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -401,6 +518,7 @@ const Orders = () => {
                                 <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
                                   Track Your Order
                                 </h3>
+
                                 <p className="mt-1 text-xs text-gray-500 sm:text-sm">
                                   Order ID: {order._id}
                                 </p>
@@ -419,6 +537,7 @@ const Orders = () => {
                               ) : (
                                 <Clock size={17} />
                               )}
+
                               {status}
                             </span>
                           </div>
@@ -426,10 +545,12 @@ const Orders = () => {
                           {isCancelled ? (
                             <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-700">
                               <XCircle size={24} className="shrink-0" />
+
                               <div>
                                 <h4 className="font-bold">
                                   Order Cancelled
                                 </h4>
+
                                 <p className="mt-1 text-sm">
                                   This order has been cancelled. Normal delivery
                                   tracking is no longer available.
@@ -440,6 +561,7 @@ const Orders = () => {
                             <>
                               <div className="mt-8 overflow-x-auto pb-3">
                                 <div className="min-w-[650px] px-2 sm:min-w-0">
+
                                   {/* Progress line and checkpoints */}
                                   <div className="relative">
                                     <div className="absolute left-[10%] right-[10%] top-5 h-1 rounded-full bg-gray-200" />
@@ -456,8 +578,10 @@ const Orders = () => {
                                     <div className="relative grid grid-cols-5">
                                       {trackingSteps.map((step, index) => {
                                         const StepIcon = step.icon;
+
                                         const isCompleted =
                                           index < currentStep || isDelivered;
+
                                         const isCurrent =
                                           index === currentStep &&
                                           !isDelivered;
@@ -531,10 +655,12 @@ const Orders = () => {
                                 size={20}
                                 className="mt-1 shrink-0 text-green-700"
                               />
+
                               <div className="min-w-0">
                                 <p className="text-xs text-gray-500">
                                   Shop Name
                                 </p>
+
                                 <p className="mt-1 break-words text-sm font-semibold text-gray-800">
                                   {order.shop?.name || "Shop unavailable"}
                                 </p>
@@ -546,10 +672,12 @@ const Orders = () => {
                                 size={20}
                                 className="mt-1 shrink-0 text-green-700"
                               />
+
                               <div className="min-w-0">
                                 <p className="text-xs text-gray-500">
                                   Items
                                 </p>
+
                                 <p className="mt-1 break-words text-sm font-semibold text-gray-800">
                                   {order.product?.name || "Product unavailable"}{" "}
                                   × {order.quantity}
@@ -562,10 +690,12 @@ const Orders = () => {
                                 size={20}
                                 className="mt-1 shrink-0 text-green-700"
                               />
+
                               <div className="min-w-0">
                                 <p className="text-xs text-gray-500">
                                   Delivery Address
                                 </p>
+
                                 <p className="mt-1 break-words text-sm font-semibold text-gray-800">
                                   {order.address}
                                 </p>

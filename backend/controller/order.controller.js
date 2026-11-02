@@ -84,6 +84,91 @@ const getUserOrders = async (req, res) => {
   }
 };
 
+
+const cancelOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    // Calculate the 10-minute deadline
+    const tenMinutesAgo = new Date(
+      Date.now() - 10 * 60 * 1000
+    );
+
+    // Find and cancel only the customer's eligible order
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        customer: req.user.id,
+        status: "Placed",
+        createdAt: { $gte: tenMinutesAgo }
+      },
+      {
+        $set: {
+          status: "Cancelled",
+          cancelledAt: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      const existingOrder = await Order.findById(orderId);
+
+      if (!existingOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found"
+        });
+      }
+
+      if (existingOrder.customer.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot cancel someone else's order"
+        });
+      }
+
+      if (existingOrder.status !== "Placed") {
+        return res.status(400).json({
+          success: false,
+          message: "Only orders with Placed status can be cancelled"
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "Cancellation time has expired. You can cancel only within 10 minutes."
+      });
+    }
+
+    // Notify the shop owner about cancellation
+    const io = req.app.get("io");
+
+    io.to(`shop:${order.shop.toString()}`).emit(
+      "order-cancelled",
+      {
+        message: "A customer has cancelled an order.",
+        orderId: order._id
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      order
+    });
+
+  } catch (error) {
+    console.log("CANCEL ORDER ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
 const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
@@ -225,7 +310,8 @@ module.exports = {
   getUserOrders,
   getAllOrders,
   updateOrderStatus,
-  getShopOrders
+  getShopOrders,
+  cancelOrder
 };
 
 

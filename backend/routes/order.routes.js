@@ -13,7 +13,8 @@ const {
   getUserOrders,
   getAllOrders ,
   updateOrderStatus,
-  getShopOrders
+  getShopOrders,
+  cancelOrder
 } = require(
   "../controller/order.controller"
 );
@@ -39,6 +40,14 @@ router.put(
   auth,
   updateOrderStatus
 );
+
+
+router.put(
+  "/:id/cancel",
+  auth,
+  cancelOrder
+);
+
 
 router.get(
   "/shop-orders",
