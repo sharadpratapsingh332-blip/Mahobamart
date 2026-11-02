@@ -17,6 +17,26 @@ import {
   MapPin,
 } from "lucide-react";
 
+// Calculate distance using Haversine formula
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+
+  const toRadians = (degree) => degree * (Math.PI / 180);
+
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,10 +47,74 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Customer location
+  const [customerLocation, setCustomerLocation] = useState(null);
+
   useEffect(() => {
     fetchProduct();
     fetchProfile();
+    getCustomerLocation();
   }, [id]);
+
+  // Get customer location
+  const getCustomerLocation = () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCustomerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.log("Location error:", error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
+  // Calculate distance between customer and shop
+  const getShopDistance = () => {
+    const coordinates = product?.shop?.location?.coordinates;
+
+    if (
+      !customerLocation ||
+      !coordinates ||
+      coordinates.length < 2
+    ) {
+      return null;
+    }
+
+    // MongoDB coordinates are [longitude, latitude]
+    const [shopLongitude, shopLatitude] = coordinates;
+
+    if (
+      !Number.isFinite(Number(shopLatitude)) ||
+      !Number.isFinite(Number(shopLongitude))
+    ) {
+      return null;
+    }
+
+    const distance = calculateDistance(
+      customerLocation.latitude,
+      customerLocation.longitude,
+      Number(shopLatitude),
+      Number(shopLongitude)
+    );
+
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} m away`;
+    }
+
+    return `${distance.toFixed(1)} km away`;
+  };
 
   const fetchProfile = async () => {
     try {
@@ -129,6 +213,7 @@ const ProductDetails = () => {
 
   const stock = Number(product.stock) || 0;
   const outOfStock = stock < 1;
+  const shopDistance = getShopDistance();
 
   return (
     <>
@@ -146,7 +231,7 @@ const ProductDetails = () => {
             Back
           </button>
 
-          {/* Product Layout: Equal Height Columns */}
+          {/* Product Layout */}
           <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-7 md:grid-cols-2 md:gap-8 lg:gap-10">
 
             {/* Product Image */}
@@ -199,8 +284,10 @@ const ProductDetails = () => {
                 </p>
               </div>
 
-              {/* Shop, Stock and Address */}
+              {/* Shop, Distance, Stock and Address */}
               <div className="mt-5 space-y-4 sm:mt-6">
+
+                {/* Shop Name */}
                 <div className="flex items-start gap-3">
                   <Store
                     size={20}
@@ -216,6 +303,23 @@ const ProductDetails = () => {
                   </div>
                 </div>
 
+                {/* Shop Distance */}
+                <div className="flex items-start gap-3">
+                  <MapPin
+                    size={20}
+                    className="mt-0.5 shrink-0 text-green-600"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500 sm:text-sm">
+                      Distance from you
+                    </p>
+                    <p className="font-semibold text-green-700">
+                      {shopDistance || "Distance unavailable"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Available Stock */}
                 <div className="flex items-start gap-3">
                   <Package
                     size={20}
@@ -231,6 +335,7 @@ const ProductDetails = () => {
                   </div>
                 </div>
 
+                {/* Shop Address */}
                 {product.shop?.address && (
                   <div className="flex items-start gap-3">
                     <MapPin

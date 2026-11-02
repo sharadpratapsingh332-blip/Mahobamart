@@ -94,7 +94,7 @@ const getProducts = async (req, res) => {
     const products = await Product.find({
       status: true
     })
-    .populate("shop", "name")
+    .populate("shop", "name location")
     .populate("category", "name");
 
     res.status(200).json({
@@ -118,7 +118,7 @@ const getProduct = async (req, res) => {
 
     const product =
       await Product.findById(req.params.id)
-      .populate("shop", "name")
+      .populate("shop", "name address image location")
       .populate("category", "name");
 
     if (!product) {
@@ -160,7 +160,7 @@ const getNearbyProducts = async (req, res) => {
               Number(latitude)
             ]
           },
-          $maxDistance: 7000
+          $maxDistance: 15000
         }
       }
     });
