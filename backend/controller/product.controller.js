@@ -175,7 +175,7 @@ const getNearbyProducts = async (req, res) => {
       shop: { $in: shopIds }
     }).populate(
       "shop",
-      "name address image"
+      "name address image location"
     );
 
     console.log(
