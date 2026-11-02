@@ -132,12 +132,12 @@ const Products = () => {
         {/* Header */}
         <div className="mx-auto mb-6 max-w-7xl">
 
-          <Link
+         <Link
             to="/"
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-green-700"
+            className="mb-5 inline-flex items-center gap-2 rounded-xl border border-green-200 bg-white px-3 py-2.5 text-sm font-semibold text-green-700 shadow-sm transition hover:bg-green-50 sm:mb-7 sm:px-4"
           >
-            <ArrowLeft size={17} />
-            Back to Home
+            <ArrowLeft size={18} />
+            Back 
           </Link>
 
           <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
