@@ -27,7 +27,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 // Calculate delivery charge according to distance
 const calculateDeliveryCharge = (distance) => {
   if (distance <= 2) {
-    return 0;
+    return 15;
   }
 
   if (distance <= 5) {
