@@ -3,23 +3,45 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import api from "../api/axios";
 
+import Navbar from "../components/Navbar";
 import {
   ArrowLeft,
   MapPin,
   Phone,
-  ShoppingBag,
   LocateFixed,
-  LoaderCircle,
-  MapPinned,
+  Loader2,
+  ShoppingBag,
+  Truck,
+  CheckCircle,
 } from "lucide-react";
 
-import Navbar from "../components/Navbar";
+// Format distance in a readable way
+const formatDistance = (distance) => {
+  if (distance === null || distance === undefined || !Number.isFinite(Number(distance))) {
+    return "Not available";
+  }
+
+  const km = Number(distance);
+
+  if (km < 1) {
+    return `${Math.round(km * 1000)} m`;
+  }
+
+  return `${km.toFixed(1)} km`;
+};
 
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { product, quantity } = location.state || {};
+  // Receive product and delivery details from ProductDetails.jsx
+  const {
+    product,
+    quantity,
+    deliveryCharge,
+    distance,
+    totalAmount,
+  } = location.state || {};
 
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,50 +50,55 @@ const Checkout = () => {
   const [locationAccuracy, setLocationAccuracy] = useState(null);
   const [coordinates, setCoordinates] = useState(null);
 
-  // Get the best available location from multiple readings.
-  const getBestCurrentLocation = () =>
-    new Promise((resolve, reject) => {
+  // Calculate product subtotal
+  const productTotal =
+    Number(product?.price || 0) * Number(quantity || 1);
+
+  // Use delivery information received from ProductDetails
+  const finalDeliveryCharge =
+    Number.isFinite(Number(deliveryCharge)) &&
+    deliveryCharge !== null &&
+    deliveryCharge !== undefined
+      ? Number(deliveryCharge)
+      : null;
+
+  const finalTotal =
+    finalDeliveryCharge !== null
+      ? productTotal + finalDeliveryCharge
+      : null;
+
+  // Get the best available GPS location
+  const getBestCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(
-          new Error("Geolocation is not supported by your browser.")
-        );
+        reject(new Error("Geolocation is not supported by your browser."));
         return;
       }
 
       let bestPosition = null;
-      let attempts = 0;
+      let readings = 0;
+      let watchId = null;
       let finished = false;
-      let watchId;
 
-      const finish = (position) => {
+      const finish = () => {
         if (finished) return;
+
         finished = true;
 
-        if (watchId !== undefined) {
-          navigator.geolocation.clearWatch(watchId);
-        }
-
-        resolve(position);
-      };
-
-      const fail = (error) => {
-        if (finished) return;
-        finished = true;
-
-        if (watchId !== undefined) {
+        if (watchId !== null) {
           navigator.geolocation.clearWatch(watchId);
         }
 
         if (bestPosition) {
           resolve(bestPosition);
         } else {
-          reject(error);
+          reject(new Error("Unable to get your location. Please try again."));
         }
       };
 
       watchId = navigator.geolocation.watchPosition(
         (position) => {
-          attempts++;
+          readings++;
 
           if (
             !bestPosition ||
@@ -80,18 +107,24 @@ const Checkout = () => {
             bestPosition = position;
           }
 
-          // Stop early when the reported accuracy is 20 metres or better.
-          if (position.coords.accuracy <= 20) {
-            finish(position);
-            return;
-          }
-
-          // Otherwise, collect up to five readings.
-          if (attempts >= 5) {
-            finish(bestPosition);
+          // Stop after collecting 5 readings
+          if (readings >= 5) {
+            finish();
           }
         },
-        fail,
+        (error) => {
+          if (!bestPosition) {
+            finished = true;
+
+            if (watchId !== null) {
+              navigator.geolocation.clearWatch(watchId);
+            }
+
+            reject(new Error(error.message || "Location permission denied."));
+          } else {
+            finish();
+          }
+        },
         {
           enableHighAccuracy: true,
           maximumAge: 0,
@@ -99,118 +132,82 @@ const Checkout = () => {
         }
       );
 
-      // Safety fallback in case no position arrives.
+      // Stop waiting after 46 seconds
       setTimeout(() => {
-        if (finished) return;
-
-        if (bestPosition) {
-          finish(bestPosition);
-        } else {
-          fail(new Error("Location request timed out. Please try again."));
-        }
+        finish();
       }, 46000);
     });
-
-  // Find the address using the selected coordinates.
-  const getAddressFromCoordinates = async (latitude, longitude) => {
-    const params = new URLSearchParams({
-      format: "jsonv2",
-      lat: String(latitude),
-      lon: String(longitude),
-      zoom: "18",
-      addressdetails: "1",
-      "accept-language": "en",
-    });
-
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        "Could not retrieve the address. Please try again or enter it manually."
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data.address || !data.display_name) {
-      throw new Error(
-        "No mapped address was found. Please enter your address manually."
-      );
-    }
-
-    const a = data.address;
-
-    const parts = [
-      a.house_number,
-      a.building,
-      a.road,
-      a.neighbourhood || a.suburb,
-      a.city || a.town || a.village || a.municipality,
-      a.state_district,
-      a.state,
-      a.postcode,
-    ].filter(Boolean);
-
-    return [...new Set(parts)].join(", ") || data.display_name;
   };
 
-  // Detect current location and fill the address field.
-  const handleUseCurrentLocation = async () => {
-    setLocating(true);
-    setLocationAccuracy(null);
-
+  // Convert latitude and longitude into a readable address
+  const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to detect address.");
+      }
+
+      const data = await response.json();
+
+      return data.display_name || "";
+    } catch (error) {
+      console.error("Address detection error:", error);
+      return "";
+    }
+  };
+
+  // Handle Use Current Location button
+  const handleUseCurrentLocation = async () => {
+    try {
+      setLocating(true);
+
       const position = await getBestCurrentLocation();
 
-      const { latitude, longitude, accuracy } = position.coords;
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
 
-      console.log("Latitude:", latitude);
-      console.log("Longitude:", longitude);
-      console.log("Accuracy in meters:", accuracy);
+      setCoordinates({
+        latitude,
+        longitude,
+      });
 
-      setCoordinates({ latitude, longitude });
-      setLocationAccuracy(Math.round(accuracy));
+      setLocationAccuracy(accuracy);
 
       const detectedAddress = await getAddressFromCoordinates(
         latitude,
         longitude
       );
 
-      setAddress(detectedAddress);
-    } catch (error) {
-      console.error("Location error:", error);
-
-      if (error.code === 1) {
-        alert("Please allow location permission in your browser settings.");
-      } else if (error.code === 2) {
-        alert("Your location is unavailable. Please enable GPS and try again.");
-      } else if (error.code === 3) {
-        alert("Location timed out. Please try again.");
+      if (detectedAddress) {
+        setAddress(detectedAddress);
       } else {
-        alert(
-          error.message ||
-            "Could not detect your location. Please enter your address manually."
-        );
+        setAddress(`${latitude}, ${longitude}`);
       }
+    } catch (error) {
+      alert(error.message || "Unable to detect your location.");
     } finally {
       setLocating(false);
     }
   };
 
+  // Go back to previous page
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+    navigate(-1);
   };
 
-  // Place the order.
+  // Place order
   const handlePlaceOrder = async () => {
     if (!product?._id) {
-      alert("Product details are missing. Please select the product again.");
+      alert("Product information is missing. Please select the product again.");
+      return;
+    }
+
+    if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
+      alert("Invalid product quantity.");
       return;
     }
 
@@ -224,52 +221,80 @@ const Checkout = () => {
       return;
     }
 
+    if (!coordinates) {
+      alert("Please use Current Location to confirm your delivery location.");
+      return;
+    }
+
+    if (finalDeliveryCharge === null || finalTotal === null) {
+      alert("Delivery charges could not be calculated. Please go back and try again.");
+      return;
+    }
+
     try {
       setPlacingOrder(true);
 
-      await api.post(
-        "/orders",
-        {
-          product: product._id,
-          quantity,
-          address: address.trim(),
-          phone: phone.trim(),
-        },
-        { withCredentials: true }
-      );
+      const response = await api.post("/orders", {
+        product: product._id,
+        quantity: Number(quantity),
+        address: address.trim(),
+        phone: phone.trim(),
 
-      alert("Order Placed Successfully");
-      navigate("/orders");
+        // These are submitted as client-side information.
+        // The backend should independently verify the distance and charges.
+        deliveryCharge: finalDeliveryCharge,
+        distance,
+        customerLocation: {
+          type: "Point",
+          coordinates: [
+            coordinates.longitude,
+            coordinates.latitude,
+          ],
+        },
+      });
+
+      alert("Your order has been placed successfully!");
+
+      navigate("/orders", {
+        replace: true,
+        state: {
+          order: response.data,
+        },
+      });
     } catch (error) {
-      console.error("Order error:", error);
+      console.error("Place order error:", error);
 
       alert(
-        error.response?.data?.message || "Failed to place order"
+        error.response?.data?.message ||
+          "Unable to place your order. Please try again."
       );
     } finally {
       setPlacingOrder(false);
     }
   };
 
+  // If someone opens Checkout directly without selecting a product
   if (!product) {
     return (
       <>
         <Navbar />
 
-        <div className="max-w-lg mx-auto px-4 py-12 text-center">
-          <h2 className="text-xl font-bold text-gray-800">
-            No product selected
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <ShoppingBag size={50} className="text-gray-400 mb-4" />
+
+          <h2 className="text-xl font-bold mb-2">
+            No Product Selected
           </h2>
 
-          <p className="text-gray-500 mt-2">
-            Please select a product before checkout.
+          <p className="text-gray-500 mb-5 text-center">
+            Please select a product before proceeding to checkout.
           </p>
 
           <button
-            onClick={() => navigate("/products")}
-            className="mt-5 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl"
+            onClick={() => navigate("/")}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg"
           >
-            Browse Products
+            Continue Shopping
           </button>
         </div>
       </>
@@ -280,194 +305,211 @@ const Checkout = () => {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-gray-50 pb-8">
-        <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+
           {/* Header */}
-          <div className="mb-5 sm:mb-6 px-3">
+          <div className="flex items-center gap-3 mb-6">
             <button
               onClick={handleBack}
-              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-gray-800 font-semibold px-5 py-2 -ml-2 rounded-lg mb-7"
+              className="p-2 rounded-full hover:bg-gray-200"
             >
-              <ArrowLeft size={21} />
-              <span>Back</span>
+              <ArrowLeft size={22} />
             </button>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-800">
               Checkout
             </h1>
-
-            <p className="text-gray-500 text-sm sm:text-base mt-1">
-              Confirm your order and delivery details
-            </p>
           </div>
 
-          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
-            {/* Product image */}
-            <div className="w-full h-52 sm:h-64 overflow-hidden rounded-xl bg-gray-100">
+          {/* Product Details */}
+          <div className="bg-white rounded-xl shadow-sm p-5 mb-5">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <ShoppingBag size={20} className="text-green-600" />
+              Order Summary
+            </h2>
+
+            <div className="flex gap-4 items-center">
               <img
-                src={product.image}
+                src={product.image || product.imageUrl}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-24 h-24 object-cover rounded-lg bg-gray-100"
               />
-            </div>
 
-            {/* Product details */}
-            <div className="mt-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {product.name}
-              </h2>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-800">
+                  {product.name}
+                </h3>
 
-              <p className="text-green-600 text-xl font-bold mt-2">
-                ₹{product.price}
-              </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Quantity: {quantity}
+                </p>
 
-              <div className="flex justify-between items-center text-sm sm:text-base text-gray-600 mt-3">
-                <span>Quantity</span>
-                <span className="font-semibold text-gray-900">
-                  {quantity}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center border-t border-gray-200 mt-4 pt-4">
-                <span className="font-semibold text-gray-800">
-                  Total Amount
-                </span>
-
-                <span className="text-xl font-bold text-green-600">
-                  ₹{product.price * quantity}
-                </span>
-              </div>
-            </div>
-
-            {/* Delivery details */}
-            <div className="mt-7">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Delivery Details
-              </h3>
-
-              {/* Phone number */}
-              <div className="mb-5">
-                <label
-                  htmlFor="phone"
-                  className="flex items-center gap-2 text-sm font-semibold text-gray-700"
-                >
-                  <Phone size={17} />
-                  Phone Number
-                </label>
-
-                <input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value.replace(/\D/g, ""))
-                  }
-                  className="w-full min-w-0 border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none p-3 sm:p-3.5 rounded-xl mt-2 text-base"
-                  placeholder="Enter 10-digit mobile number"
-                />
-              </div>
-
-              {/* Delivery address and location button */}
-              <div>
-                <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label
-                    htmlFor="address"
-                    className="flex items-center gap-2 text-sm font-semibold text-gray-700"
-                  >
-                    <MapPin size={18} />
-                    Delivery Address
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={locating}
-                    className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
-                  >
-                    {locating ? (
-                      <LoaderCircle
-                        size={18}
-                        className="animate-spin"
-                      />
-                    ) : (
-                      <LocateFixed size={18} />
-                    )}
-
-                    {locating
-                      ? "Finding location..."
-                      : "Use Current Location"}
-                  </button>
-                </div>
-
-                <textarea
-                  id="address"
-                  autoComplete="street-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full min-w-0 border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none p-3 sm:p-3.5 rounded-xl text-base resize-y"
-                  rows={3}
-                  placeholder="House number, street, area, Mahoba..."
-                />
-
-                {locationAccuracy !== null && (
-                  <div className="mt-3 rounded-xl bg-green-50 border border-green-100 p-3">
-                    <p className="flex items-center gap-2 text-sm font-semibold text-green-800">
-                      <MapPinned size={17} />
-                      Location detected
-                    </p>
-
-                    <p className="text-sm text-gray-600 mt-1">
-                      Estimated device accuracy: about{" "}
-                      {locationAccuracy} metres.
-                    </p>
-
-                    {coordinates && (
-                      <p className="text-xs text-gray-500 mt-1 break-all">
-                        {coordinates.latitude}, {coordinates.longitude}
-                      </p>
-                    )}
-
-                    <p className="text-xs text-gray-600 mt-2">
-                      Please verify your house number and street. You can
-                      edit the address above if needed.
-                    </p>
-                  </div>
-                )}
-
-                <p className="mt-2 text-xs text-gray-500">
-                  Address lookup ©{" "}
-                  <a
-                    href="https://www.openstreetmap.org/copyright"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline"
-                  >
-                    OpenStreetMap contributors
-                  </a>
+                <p className="text-green-700 font-semibold mt-1">
+                  ₹{Number(product.price).toFixed(2)} × {quantity}
                 </p>
               </div>
             </div>
 
-            {/* Place order */}
-            <button
-              onClick={handlePlaceOrder}
-              disabled={placingOrder || locating}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3.5 rounded-xl mt-6 active:scale-[0.98] transition duration-150"
-            >
-              <ShoppingBag size={19} />
+            {/* Price Breakdown */}
+            <div className="border-t mt-5 pt-4 space-y-3">
 
-              {placingOrder ? "Placing Order..." : "Place Order"}
-            </button>
+              <div className="flex justify-between text-gray-600">
+                <span>Product Amount</span>
 
-            <p className="text-xs text-gray-400 text-center mt-3">
-              Please check your delivery details before placing your order.
+                <span>
+                  ₹{productTotal.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-gray-600">
+                <span className="flex items-center gap-2">
+                  <Truck size={17} />
+                  Delivery Distance
+                </span>
+
+                <span>
+                  {formatDistance(distance)}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-gray-600">
+                <span>Delivery Charge</span>
+
+                {finalDeliveryCharge === null ? (
+                  <span className="text-red-600">
+                    Not available
+                  </span>
+                ) : finalDeliveryCharge === 0 ? (
+                  <span className="text-green-600 font-semibold">
+                    FREE
+                  </span>
+                ) : (
+                  <span>
+                    ₹{finalDeliveryCharge.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              <div className="border-t pt-3 flex justify-between items-center">
+                <span className="font-bold text-lg">
+                  Total Amount
+                </span>
+
+                <span className="font-bold text-xl text-green-700">
+                  {finalTotal !== null
+                    ? `₹${finalTotal.toFixed(2)}`
+                    : "Unavailable"}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-3">
+              Delivery is free within 2 km. Charges depend on the
+              distance between you and the shop.
             </p>
           </div>
+
+          {/* Delivery Information */}
+          <div className="bg-white rounded-xl shadow-sm p-5 mb-5">
+            <h2 className="text-lg font-semibold mb-4">
+              Delivery Information
+            </h2>
+
+            {/* Phone Number */}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Phone size={16} className="inline mr-2" />
+              Mobile Number
+            </label>
+
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) =>
+                setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+              }
+              placeholder="Enter 10-digit mobile number"
+              maxLength={10}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-5 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+
+            {/* Address */}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPin size={16} className="inline mr-2" />
+              Delivery Address
+            </label>
+
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your complete delivery address"
+              rows={4}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+
+            {/* Current Location Button */}
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={locating}
+              className="mt-4 w-full flex items-center justify-center gap-2 border border-green-600 text-green-700 font-medium py-3 rounded-lg hover:bg-green-50 disabled:opacity-60"
+            >
+              {locating ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Detecting Location...
+                </>
+              ) : (
+                <>
+                  <LocateFixed size={18} />
+                  Use Current Location
+                </>
+              )}
+            </button>
+
+            {/* Location Accuracy */}
+            {coordinates && (
+              <div className="mt-3 bg-green-50 p-3 rounded-lg">
+                <p className="text-sm text-green-700 flex items-center gap-2">
+                  <CheckCircle size={17} />
+                  Location detected successfully
+                </p>
+
+                {locationAccuracy !== null && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    GPS accuracy: approximately{" "}
+                    {Math.round(locationAccuracy)} metres
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Place Order Button */}
+          <button
+            onClick={handlePlaceOrder}
+            disabled={
+              placingOrder ||
+              locating ||
+              finalDeliveryCharge === null ||
+              finalTotal === null
+            }
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {placingOrder ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                Placing Order...
+              </>
+            ) : (
+              `Place Order • ₹${
+                finalTotal !== null ? finalTotal.toFixed(2) : "--"
+              }`
+            )}
+          </button>
+
         </div>
-      </main>
+      </div>
     </>
   );
 };

@@ -2,65 +2,247 @@ const Order = require("../models/order.model");
 const Product = require("../models/product.model");
 const Shop = require("../models/shop.model")
 
+
+// Calculate distance between customer and shop using GPS coordinates
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in kilometres
+
+  const toRadians = (degree) => degree * (Math.PI / 180);
+
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+// Calculate delivery charge according to distance
+const calculateDeliveryCharge = (distance) => {
+  if (distance <= 2) {
+    return 0;
+  }
+
+  if (distance <= 5) {
+    return 40;
+  }
+
+  if (distance <= 10) {
+    return 60;
+  }
+
+  return null;
+};
+
 const createOrder = async (req, res) => {
   try {
-
-
     const {
       product,
       quantity,
       address,
-      phone
+      phone,
+      customerLocation,
     } = req.body;
 
-    const productData =
-      await Product.findById(product);
+    // 1. Validate required fields
+    if (!product || !quantity || !address || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required order details",
+      });
+    }
+
+    // 2. Validate quantity
+    const orderQuantity = Number(quantity);
+
+    if (
+      !Number.isInteger(orderQuantity) ||
+      orderQuantity < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product quantity",
+      });
+    }
+
+    // 3. Validate phone number
+    if (!/^[6-9]\d{9}$/.test(String(phone).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid 10-digit mobile number",
+      });
+    }
+
+    // 4. Get product details
+    const productData = await Product.findById(product);
 
     if (!productData) {
       return res.status(404).json({
         success: false,
-        message: "Product not found"
+        message: "Product not found",
       });
     }
 
-    const totalAmount =
-      productData.price * quantity;
+    // 5. Validate product price
+    const productPrice = Number(productData.price);
 
-    const order =
-      await Order.create({
-        customer: req.user.id,
-        product,
-        shop: productData.shop,
-        quantity,
-        totalAmount,
-        address,
-        phone
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product price",
       });
+    }
 
+    // 6. Get shop details
+    const shop = await Shop.findById(productData.shop);
+
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: "Shop not found",
+      });
+    }
+
+    // 7. Get customer's GPS coordinates
+    const customerCoordinates =
+      customerLocation?.coordinates;
+
+    if (
+      customerLocation?.type !== "Point" ||
+      !Array.isArray(customerCoordinates) ||
+      customerCoordinates.length !== 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid delivery location",
+      });
+    }
+
+    // GeoJSON coordinates are [longitude, latitude]
+    const customerLongitude = Number(customerCoordinates[0]);
+    const customerLatitude = Number(customerCoordinates[1]);
+
+    if (
+      !Number.isFinite(customerLongitude) ||
+      !Number.isFinite(customerLatitude) ||
+      customerLongitude < -180 ||
+      customerLongitude > 180 ||
+      customerLatitude < -90 ||
+      customerLatitude > 90
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid customer GPS coordinates",
+      });
+    }
+
+    // 8. Get shop GPS coordinates
+    const shopCoordinates = shop.location?.coordinates;
+
+    if (
+      !Array.isArray(shopCoordinates) ||
+      shopCoordinates.length !== 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Shop location is not available",
+      });
+    }
+
+    // GeoJSON coordinates are [longitude, latitude]
+    const shopLongitude = Number(shopCoordinates[0]);
+    const shopLatitude = Number(shopCoordinates[1]);
+
+    if (
+      !Number.isFinite(shopLongitude) ||
+      !Number.isFinite(shopLatitude) ||
+      shopLongitude < -180 ||
+      shopLongitude > 180 ||
+      shopLatitude < -90 ||
+      shopLatitude > 90
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid shop location",
+      });
+    }
+
+    // 9. Calculate actual distance on backend
+    const distance = calculateDistance(
+      customerLatitude,
+      customerLongitude,
+      shopLatitude,
+      shopLongitude
+    );
+
+    // 10. Calculate delivery charge on backend
+    const deliveryCharge = calculateDeliveryCharge(distance);
+
+    if (deliveryCharge === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery is not available beyond 10 km",
+        distance: Number(distance.toFixed(2)),
+      });
+    }
+
+    // 11. Calculate final order amount
+    const productTotal = productPrice * orderQuantity;
+
+    const totalAmount = productTotal + deliveryCharge;
+
+    // 12. Create order
+    const order = await Order.create({
+      customer: req.user.id,
+      product: productData._id,
+      shop: productData.shop,
+      quantity: orderQuantity,
+      productTotal,
+      deliveryCharge,
+      distance: Number(distance.toFixed(2)),
+      totalAmount,
+      address: address.trim(),
+      phone: String(phone).trim(),
+    });
+
+    // 13. Notify the shop owner
     const io = req.app.get("io");
 
-io.to(`shop:${productData.shop.toString()}`).emit("new-order", {
-  message: "You have received a new order!",
-  orderId: order._id,
-  productName: productData.name,
-  quantity: order.quantity,
-  totalAmount: order.totalAmount,
-});
+    if (io) {
+      io.to(`shop:${productData.shop.toString()}`).emit(
+        "new-order",
+        {
+          message: "You have received a new order!",
+          orderId: order._id,
+          productName: productData.name,
+          quantity: order.quantity,
+          totalAmount: order.totalAmount,
+        }
+      );
+    }
 
-    res.status(201).json({
+    // 14. Send response
+    return res.status(201).json({
       success: true,
-      order
+      message: "Order placed successfully",
+      order,
     });
 
   } catch (error) {
-        console.log("CREATE PRODUCT ERROR:");
-         console.log(error);
+    console.log("CREATE ORDER ERROR:", error);
 
-         res.status(500).json({
-         success: false,
-    message: error.message,
-  });
-}
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 const getUserOrders = async (req, res) => {
@@ -144,13 +326,15 @@ const cancelOrder = async (req, res) => {
     // Notify the shop owner about cancellation
     const io = req.app.get("io");
 
-    io.to(`shop:${order.shop.toString()}`).emit(
-      "order-cancelled",
-      {
-        message: "A customer has cancelled an order.",
-        orderId: order._id
-      }
-    );
+if (io) {
+  io.to(`shop:${order.shop.toString()}`).emit(
+    "order-cancelled",
+    {
+      message: "A customer has cancelled an order.",
+      orderId: order._id
+    }
+  );
+}
 
     return res.status(200).json({
       success: true,

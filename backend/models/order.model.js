@@ -27,6 +27,26 @@ const orderSchema = new mongoose.Schema(
       default: 1
     },
 
+    // Product price multiplied by quantity
+    productTotal: {
+      type: Number,
+      required: true
+    },
+
+    // Delivery charge based on distance
+    deliveryCharge: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+
+    // Distance between customer and shop in kilometres
+    distance: {
+      type: Number,
+      required: true
+    },
+
+    // Product total + delivery charge
     totalAmount: {
       type: Number,
       required: true
@@ -60,7 +80,6 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       default: null
     }
-
   },
   {
     timestamps: true

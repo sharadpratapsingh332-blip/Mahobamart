@@ -17,7 +17,10 @@ import {
   MapPin,
 } from "lucide-react";
 
-// Calculate distance using Haversine formula
+// ==========================================
+// 1. Calculate distance using Haversine formula
+// ==========================================
+
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
 
@@ -37,6 +40,34 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+// ==========================================
+// 2. Calculate delivery charge
+// ==========================================
+
+const calculateDeliveryCharge = (distance) => {
+  if (distance === null || !Number.isFinite(distance) || distance < 0) {
+    return null;
+  }
+
+  if (distance <= 2) {
+    return 15;
+  }
+
+  if (distance <= 5) {
+    return 40;
+  }
+
+  if (distance <= 10) {
+    return 60;
+  }
+
+  return null;
+};
+
+// ==========================================
+// 3. Product Details Component
+// ==========================================
+
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -50,15 +81,20 @@ const ProductDetails = () => {
   // Customer location
   const [customerLocation, setCustomerLocation] = useState(null);
 
+  // ==========================================
+  // 4. Fetch product, profile and customer location
+  // ==========================================
+
   useEffect(() => {
     fetchProduct();
     fetchProfile();
     getCustomerLocation();
   }, [id]);
 
-  // Get customer location
+  // Get customer's current location
   const getCustomerLocation = () => {
     if (!navigator.geolocation) {
+      console.log("Geolocation is not supported by this browser.");
       return;
     }
 
@@ -80,8 +116,11 @@ const ProductDetails = () => {
     );
   };
 
-  // Calculate distance between customer and shop
-  const getShopDistance = () => {
+  // ==========================================
+  // 5. Get actual distance between customer and shop
+  // ==========================================
+
+  const getShopDistanceKm = () => {
     const coordinates = product?.shop?.location?.coordinates;
 
     if (
@@ -92,29 +131,34 @@ const ProductDetails = () => {
       return null;
     }
 
-    // MongoDB coordinates are [longitude, latitude]
+    // MongoDB coordinates: [longitude, latitude]
     const [shopLongitude, shopLatitude] = coordinates;
 
+    const latitude = Number(shopLatitude);
+    const longitude = Number(shopLongitude);
+
     if (
-      !Number.isFinite(Number(shopLatitude)) ||
-      !Number.isFinite(Number(shopLongitude))
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
     ) {
       return null;
     }
 
-    const distance = calculateDistance(
+    return calculateDistance(
       customerLocation.latitude,
       customerLocation.longitude,
-      Number(shopLatitude),
-      Number(shopLongitude)
+      latitude,
+      longitude
     );
-
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)} m away`;
-    }
-
-    return `${distance.toFixed(1)} km away`;
   };
+
+  // ==========================================
+  // 6. Fetch customer profile
+  // ==========================================
 
   const fetchProfile = async () => {
     try {
@@ -124,6 +168,10 @@ const ProductDetails = () => {
       console.log("Profile loading failed:", error);
     }
   };
+
+  // ==========================================
+  // 7. Fetch product details
+  // ==========================================
 
   const fetchProduct = async () => {
     try {
@@ -136,6 +184,7 @@ const ProductDetails = () => {
       setProduct(res.data.product);
     } catch (error) {
       console.log(error);
+
       setError(
         error.response?.data?.message ||
           "Unable to load this product. Please try again."
@@ -145,6 +194,10 @@ const ProductDetails = () => {
     }
   };
 
+  // ==========================================
+  // 8. Handle Order Now
+  // ==========================================
+
   const handleOrderNow = () => {
     if (!product) return;
 
@@ -153,23 +206,36 @@ const ProductDetails = () => {
       return;
     }
 
+    if (deliveryCharge === null) {
+      return;
+    }
+
     navigate("/checkout", {
       state: {
         product,
         quantity,
+        deliveryCharge,
+        distance: shopDistanceKm,
+        totalAmount,
       },
     });
   };
+
+  // ==========================================
+  // 9. Loading screen
+  // ==========================================
 
   if (loading) {
     return (
       <>
         <Navbar />
+
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
           <LoaderCircle
             size={40}
             className="animate-spin text-green-600"
           />
+
           <p className="mt-4 text-base font-medium text-gray-600 sm:text-lg">
             Loading product...
           </p>
@@ -178,10 +244,15 @@ const ProductDetails = () => {
     );
   }
 
+  // ==========================================
+  // 10. Error screen
+  // ==========================================
+
   if (error || !product) {
     return (
       <>
         <Navbar />
+
         <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 text-center">
           <Package size={48} className="text-gray-400" />
 
@@ -211,9 +282,42 @@ const ProductDetails = () => {
     );
   }
 
+  // ==========================================
+  // 11. Calculate product and delivery amounts
+  // ==========================================
+
   const stock = Number(product.stock) || 0;
   const outOfStock = stock < 1;
-  const shopDistance = getShopDistance();
+
+  // Actual distance in kilometers
+  const shopDistanceKm = getShopDistanceKm();
+
+  // Formatted distance for display
+  const shopDistance =
+    shopDistanceKm === null
+      ? null
+      : shopDistanceKm < 1
+        ? `${Math.round(shopDistanceKm * 1000)} m away`
+        : `${shopDistanceKm.toFixed(1)} km away`;
+
+  // Calculate delivery charge
+  const deliveryCharge = calculateDeliveryCharge(shopDistanceKm);
+
+  // Calculate product subtotal
+  const productTotal = Number(product.price) * quantity;
+
+  // Calculate final amount
+  const totalAmount =
+    deliveryCharge === null
+      ? null
+      : productTotal + deliveryCharge;
+
+  // Check whether delivery is unavailable
+  const deliveryUnavailable = deliveryCharge === null;
+
+  // ==========================================
+  // 12. Main Product Details UI
+  // ==========================================
 
   return (
     <>
@@ -274,9 +378,11 @@ const ProductDetails = () => {
                 {product.description || "No description available."}
               </p>
 
-              {/* Price */}
+              {/* Product Price */}
               <div className="mt-5 border-b border-gray-100 pb-5 sm:mt-6 sm:pb-6">
-                <p className="text-sm text-gray-500">Price</p>
+                <p className="text-sm text-gray-500">
+                  Price per item
+                </p>
 
                 <p className="mt-1 flex items-center text-3xl font-bold text-green-600 sm:text-4xl">
                   <IndianRupee size={27} />
@@ -293,10 +399,12 @@ const ProductDetails = () => {
                     size={20}
                     className="mt-0.5 shrink-0 text-green-600"
                   />
+
                   <div className="min-w-0">
                     <p className="text-xs text-gray-500 sm:text-sm">
                       Available at
                     </p>
+
                     <p className="break-words font-semibold text-gray-800">
                       {product.shop?.name || "Shop unavailable"}
                     </p>
@@ -309,10 +417,12 @@ const ProductDetails = () => {
                     size={20}
                     className="mt-0.5 shrink-0 text-green-600"
                   />
+
                   <div className="min-w-0">
                     <p className="text-xs text-gray-500 sm:text-sm">
                       Distance from you
                     </p>
+
                     <p className="font-semibold text-green-700">
                       {shopDistance || "Distance unavailable"}
                     </p>
@@ -325,10 +435,12 @@ const ProductDetails = () => {
                     size={20}
                     className="mt-0.5 shrink-0 text-green-600"
                   />
+
                   <div className="min-w-0">
                     <p className="text-xs text-gray-500 sm:text-sm">
                       Available Stock
                     </p>
+
                     <p className="font-semibold text-gray-800">
                       {stock} items
                     </p>
@@ -342,10 +454,12 @@ const ProductDetails = () => {
                       size={20}
                       className="mt-0.5 shrink-0 text-green-600"
                     />
+
                     <div className="min-w-0">
                       <p className="text-xs text-gray-500 sm:text-sm">
                         Shop Address
                       </p>
+
                       <p className="break-words text-sm text-gray-700 sm:text-base">
                         {product.shop.address}
                       </p>
@@ -395,28 +509,98 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              {/* Total Amount */}
-              <div className="mt-6 rounded-xl bg-green-50 p-4 sm:mt-8 sm:p-5">
+              {/* ==========================================
+                  13. Delivery Charges and Total Amount
+                  ========================================== */}
+
+              <div className="mt-6 space-y-3 rounded-xl bg-green-50 p-4 sm:mt-8 sm:p-5">
+
+                {/* Product Subtotal */}
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-gray-600 sm:text-base">
-                    Total Amount
+                  <span className="text-sm text-gray-600">
+                    Product Total ({quantity} item{quantity > 1 ? "s" : ""})
                   </span>
 
-                  <span className="flex items-center text-xl font-bold text-green-700 sm:text-2xl">
-                    <IndianRupee size={20} />
-                    {Number(product.price) * quantity}
+                  <span className="flex items-center font-semibold text-gray-800">
+                    <IndianRupee size={16} />
+                    {productTotal.toFixed(2)}
                   </span>
                 </div>
+
+                {/* Delivery Distance */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-600">
+                    Delivery Distance
+                  </span>
+
+                  <span className="text-sm font-semibold text-gray-800">
+                    {shopDistance || "Unavailable"}
+                  </span>
+                </div>
+
+                {/* Delivery Charge */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-600">
+                    Delivery Charges
+                  </span>
+
+                  <span className="font-semibold text-gray-800">
+                    {deliveryCharge === null ? (
+                      "Unavailable"
+                    ) : deliveryCharge === 0 ? (
+                      <span className="text-green-700">FREE</span>
+                    ) : (
+                      <span className="flex items-center">
+                        <IndianRupee size={16} />
+                        {deliveryCharge}
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Final Total */}
+                <div className="border-t border-green-200 pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-base font-semibold text-gray-700">
+                      Total Amount
+                    </span>
+
+                    <span className="flex items-center text-xl font-bold text-green-700 sm:text-2xl">
+                      {totalAmount === null ? (
+                        "Unavailable"
+                      ) : (
+                        <>
+                          <IndianRupee size={20} />
+                          {totalAmount.toFixed(2)}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Delivery Unavailable Message */}
+                {deliveryUnavailable && (
+                  <p className="text-sm text-red-600">
+                    {shopDistanceKm === null
+                      ? "Please enable your location and allow access to calculate delivery charges."
+                      : "Sorry! Delivery is not available beyond 10 km."}
+                  </p>
+                )}
               </div>
 
               {/* Order Button */}
               <button
                 onClick={handleOrderNow}
-                disabled={outOfStock}
+                disabled={outOfStock || deliveryUnavailable}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-green-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400 sm:py-4 sm:text-lg"
               >
                 <ShoppingBag size={20} />
-                {outOfStock ? "Out of Stock" : "Order Now"}
+
+                {outOfStock
+                  ? "Out of Stock"
+                  : deliveryUnavailable
+                    ? "Delivery Unavailable"
+                    : "Order Now"}
               </button>
 
               <p className="mt-3 text-center text-xs text-gray-500 sm:text-sm">
